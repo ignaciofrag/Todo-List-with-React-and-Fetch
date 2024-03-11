@@ -2,58 +2,58 @@ import React, { useState, useEffect } from "react";
 import "../../styles/index.css";
 
 function Home() {
-  const initialTodos = [
-    { id: 1, text: "Make the bed", done: false },
-    { id: 2, text: "Wash my hands", done: false },
-    { id: 3, text: "Eat", done: false },
-    { id: 4, text: "Walk the dog", done: false },
-  ];
-
-  const [todos, setTodos] = useState(initialTodos);
-  const [input, setInput] = useState("");
-  const username = "tuNombreDeUsuario"; 
+  const [todos, setTodos] = useState([]);
+  const [input, setInput] = useState(""); 
+  const username = "miTodoList";
   const apiUrl = `https://playground.4geeks.com/apis/fake/todos/user/${username}`;
 
+  
   useEffect(() => {
-    fetch(apiUrl)
-      .then((resp) => {
-        if (!resp.ok) {
-          throw new Error('Failed to fetch todos');
-        }
-        return resp.json();
+    fetch(apiUrl, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+    .then((resp) => {
+      if (!resp.ok) throw new Error('Failed to fetch todos');
+      return resp.json();
+    })
+    .then((data) => {
+      if (Array.isArray(data) && data.length > 0) {
+        const formattedTodos = data.map((todo) => ({
+          id: todo.id,
+          text: todo.label,
+          done: todo.done,
+        }));
+        setTodos(formattedTodos);
+      }
+    })
+    .catch((error) => {
+      console.error("Error al cargar los todos:", error);
+      fetch(apiUrl, {
+        method: "POST",
+        body: JSON.stringify([]),
+        headers: {
+          "Content-Type": "application/json",
+        },
       })
-      .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          const formattedTodos = data.map((todo) => ({
-            id: todo.id || todo.label, 
-            text: todo.label,
-            done: todo.done,
-          }));
-          setTodos(formattedTodos);
-        }
-      })
-      .catch((error) => {
-        console.log(error);
-        
-        fetch(apiUrl, {
-          method: 'POST',
-          body: JSON.stringify([]),
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }).then(() => {
-          console.log('Nuevo usuario creado');
-        }).catch(error => console.error('Error creando el usuario:', error));
-      });
-  }, [apiUrl]);
+      .then(resp => resp.json())
+      .then(() => console.log("Nuevo usuario creado"))
+      .catch(error => console.error("Error creando el usuario:", error));
+    });
+  }, [apiUrl]); 
 
   const handleAdd = (e) => {
     e.preventDefault();
-    if (!input.trim()) return;
-    const newTodos = [...todos, { id: Date.now(), text: input, done: false }];
+    if (!input.trim()) return; 
+    const newTodo = { text: input, done: false };
+    const newTodos = [...todos, newTodo];
     updateTodos(newTodos);
+    setInput(""); 
   };
 
+ 
   const handleDelete = (id) => {
     const updatedTodos = todos.filter((todo) => todo.id !== id);
     updateTodos(updatedTodos);
@@ -61,30 +61,26 @@ function Home() {
 
   const handleClearAll = () => {
     fetch(apiUrl, {
-      method: 'DELETE',
+      method: "DELETE",
       headers: {
-        'Content-Type': 'application/json'
-      }
+        "Content-Type": "application/json",
+      },
     })
-    .then(() => {
-      setTodos([]); 
-    })
-    .catch(error => console.log(error));
+    .then(() => setTodos([])) 
+    .catch(error => console.error("Error al limpiar todos:", error));
   };
 
   const updateTodos = (newTodos) => {
     fetch(apiUrl, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(newTodos.map(todo => ({ label: todo.text, done: todo.done }))),
       headers: {
-        'Content-Type': 'application/json'
-      }
+        "Content-Type": "application/json",
+      },
     })
     .then(resp => resp.json())
-    .then(() => {
-      setTodos(newTodos);
-    })
-    .catch(error => console.log(error));
+    .then(() => setTodos(newTodos)) 
+    .catch(error => console.error("Error al actualizar todos:", error));
   };
 
   return (
